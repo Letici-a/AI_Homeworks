@@ -1,0 +1,86 @@
+#i tried to do the tasks without seeing the solutions, i didn't do them all thus i'll try to do the rest questions as well, it really was a good experiance.
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import calendar
+import os
+
+#(Task_1)
+
+#Turn csv into DataFrames then Concatenate them
+Sales_2019 = "/content/Sales_data_2019"
+Data = os.walk(Sales_2019)
+data = pd.DataFrame()
+for root, dirs, files in Data:
+  for file in files:
+    data = pd.concat([data,(pd.read_csv(f"{root}/{file}"))],ignore_index=True)
+
+#(Question_1)
+
+#Drop rows where one of the elements is NaN
+data = data.dropna(how='any')
+
+#Add a 'Month' column
+data.insert(len(data.columns),'Month',data['Order Date'].str[0:2])
+
+#Drop rows where the 'Ordered Date' value is 'Ordered Date'
+data = data[data['Month'] != 'Or']
+
+#Add 'Sales' column
+data['Quantity Ordered'] = data['Quantity Ordered'].astype(int)
+data['Price Each'] = data['Price Each'].astype(float)
+data.insert(len(data.columns),'Sales', data['Quantity Ordered']*data['Price Each'])
+
+#Find the best month for sales
+Best_S = 0
+Monthly_Sales = [] #initialize a list for each month's sales
+for a in range(1, 13):
+  if a < 10 :
+    m = f"0{a}"
+  else:
+    m = str(a)
+  S = data[data['Month']== m ]['Sales'].sum()
+  Monthly_Sales.append(S) #add each month's sales to the list
+  if Best_S < S :
+    Best_S = S
+    Month = calendar.month_name[a]
+print (f"The best Month Sale was {Month}, with {Best_S}$ earned.")
+
+#bar of sales per month
+x_data = range(1,13)
+y_label = [1000000,2000000,3000000,4000000,5000000]
+plt.bar(x_data , Monthly_Sales)
+plt.yticks(y_label, [f"{label:,}" for label in y_label])
+plt.xlabel("Sales")
+plt.ylabel("Month")
+plt.title("Data Sales 2019")
+plt.show()
+
+#(Question_2)
+
+#Add a column 'City' : City(State)
+data.insert(len(data.columns), 'City', data['Purchase Address'].str.split(',').str[1])
+Part = data['Purchase Address'].str.split(',')
+Part_0= Part.str[2].str.split(' ')
+Part_1 = Part.str[1]
+Part_2 = Part_0.str[0].str.replace('', ' (')
+Part_3 = Part_0.str[1]
+Part_4 = Part_0.str[0].str.replace('', ')')
+data['City'] = Part_1 + Part_2 + Part_3 + Part_4
+
+#Find the city with the highest number of sales
+City_Nsales = data.groupby('City')['Quantity Ordered'].sum()
+MCity = City_Nsales[City_Nsales == City_Nsales.max()].index.tolist()
+if len(MCity) == 1 :
+  print(f"The city with the highest number of sales is {','.join(MCity)}; with {City_Nsales.max()} sales. ")
+else:
+  print(f"The cities with the highest number of sales are {','.join(MCity)}; with {City_Nsales.max()} sales. ")
+
+# bar of Sales per City(State)
+x_data = City_Nsales.index.tolist()
+plt.bar(x_data , City_Nsales)
+plt.xlabel("Cities")
+plt.ylabel("Number of sales")
+plt.title("Data Sales 2019(Sales/City)")
+plt.xticks(rotation=90)
+plt.show()
